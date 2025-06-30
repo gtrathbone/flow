@@ -1,0 +1,20 @@
+services:
+  rabbitmq:
+    container_name: 'guide-rabbit'
+    image: 'rabbitmq:latest'
+    environment:
+      - 'RABBITMQ_DEFAULT_PASS=secret'
+      - 'RABBITMQ_DEFAULT_USER=myuser'
+    ports:
+      - '5672:5672'
+  activemq:
+    container_name: 'flow-activemq'
+    image: webcenter/activemq:latest
+    environment:
+      - ACTIVEMQ_NAME=activemq
+      - ACTIVEMQ_USERNAME=admin
+      - ACTIVEMQ_PASSWORD=password
+    ports:
+      - "8161:8161"
+      - "61616:61616"
+
