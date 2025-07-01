@@ -1,8 +1,10 @@
 package rss.play.flow.flows;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerException;
@@ -12,7 +14,8 @@ import javax.xml.transform.stream.StreamSource;
 import java.io.StringReader;
 import java.io.StringWriter;
 
-@Configuration
+@Component
+@ConditionalOnProperty(value = "flow.xml", havingValue = "true", matchIfMissing = true)
 public class XsltFlow {
 
   @Bean
