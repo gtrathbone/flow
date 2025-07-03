@@ -17,4 +17,7 @@ services:
     ports:
       - "8161:8161"
       - "61616:61616"
-
+  debian:
+    container_name: 'flow-debian'
+    image: debian:trixie-backports
+    command: bash -c "echo 'Hello from Debian!' && sleep infinity" # Example command

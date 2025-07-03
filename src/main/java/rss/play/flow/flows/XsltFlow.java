@@ -1,8 +1,19 @@
 package rss.play.flow.flows;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.core.MessagingTemplate;
+import org.springframework.integration.dsl.IntegrationFlow;
+import org.springframework.integration.support.MessageBuilder;
+import org.springframework.integration.xml.transformer.MarshallingTransformer;
+import org.springframework.integration.xml.transformer.XsltPayloadTransformer;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
@@ -15,32 +26,33 @@ import java.io.StringReader;
 import java.io.StringWriter;
 
 @Component
-@ConditionalOnProperty(value = "flow.xml", havingValue = "true", matchIfMissing = true)
 public class XsltFlow {
+  @Autowired
+  @Qualifier("incoming")
+  MessageChannel incomingChannel;
+
+  TransformerFactory transformerFactory = new net.sf.saxon.TransformerFactoryImpl();;
 
   @Bean
-  public TransformerFactory transformerFactory() {
-    return new net.sf.saxon.TransformerFactoryImpl();
+  public MessageChannel xslt() {
+    return new DirectChannel();
   }
 
-  @Scheduled(fixedRate = 5000)
-  public void transform() throws TransformerException {
-    TransformerFactory transformerFactory = transformerFactory();
+  @Bean
+  public IntegrationFlow xsltFlowConfig() {
+    return IntegrationFlow
+      .from("xslt")
+      .handle(this, "messageHandler")
+      .channel("incoming")
+      .get();
+  }
 
-    String xmlInput = """
-    <root>
-      <data>Some data</data>
-      <a>
-        <removethis>This element will be removed</removethis>
-      </a>
-      <otherdata>More data</otherdata>
-    </root>
-    """;
+  public Message<?> messageHandler(Message<?> m) {
 
     String xsltStylesheet = """
-      <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+      <xsl:stylesheet version="3.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" expand-text="yes">
       
-      <xsl:output omit-xml-declaration="yes" indent="yes"/>
+      <xsl:output method="xml" omit-xml-declaration="yes" indent="yes" encoding="utf-8"/>
       <xsl:strip-space elements="*"/>
       
       <xsl:template match="@* | node()">
@@ -49,12 +61,20 @@ public class XsltFlow {
         </xsl:copy>
       </xsl:template>
       
-      <xsl:template match="removethis/text()"/>
+      <!-- <xsl:template match="removethis/text()">redacted</xsl:template> -->
+      <xsl:template match="report"/>
+      <xsl:template match="link"/>
+      <xsl:template match="file"/>
+      <!--
+      <xsl:template match="file">
+        <xsl:comment>redacted</xsl:comment>
+      </xsl:template>
+      -->
       
       </xsl:stylesheet>
     """;
 
-    StringReader xmlReader = new StringReader(xmlInput);
+    StringReader xmlReader = new StringReader(m.getPayload().toString());
     StringReader xsltReader = new StringReader(xsltStylesheet);
     StringWriter outputWriter = new StringWriter();
 
@@ -67,6 +87,11 @@ public class XsltFlow {
     }
 
     String transformed = outputWriter.toString();
-    System.out.println(transformed);
+
+    return MessageBuilder
+      .withPayload(outputWriter.toString())
+      .copyHeaders(m.getHeaders())
+      .setHeader("xslt", "transformed")
+      .build();
   }
 }

@@ -1,4 +1,4 @@
-package rss.play.flow.config;
+package rss.play.flow.source;
 
 import jakarta.jms.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,11 +14,9 @@ import org.springframework.integration.support.MessageBuilder;
 import org.springframework.jms.annotation.JmsListener;
 import org.springframework.jms.config.DefaultJmsListenerContainerFactory;
 import org.springframework.jms.core.JmsTemplate;
-import org.springframework.jms.listener.SimpleMessageListenerContainer;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
 import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Component;
 
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(value = "source.activemq", havingValue = "true", matchIfMissing = true)
@@ -50,8 +48,6 @@ public class ActiveMQInterface {
       .setHeader("one", "one").build();
     Message<?> r = template.sendAndReceive(incomingChannel, m);
     System.out.println(r);
-//    context.getBean("incoming", MessageChannel.class)
-//      .send(MessageBuilder.withPayload(message).setHeader("one", "one").build());
   }
 
   @Scheduled(fixedRate = 5000)
